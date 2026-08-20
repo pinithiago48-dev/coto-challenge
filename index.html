@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>COTO Challenge - Compra Misteriosa</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f3f4f6;color:#151515}
+header{background:#d71920;color:#fff;padding:18px 16px;text-align:center;position:sticky;top:0;z-index:10;box-shadow:0 3px 10px #0002}
+header h1{margin:0;font-size:28px} header p{margin:5px 0 0;font-size:14px}
+.wrap{max-width:900px;margin:auto;padding:16px}
+.card{background:#fff;border-radius:18px;padding:18px;margin:14px 0;box-shadow:0 3px 14px #00000012}
+.hidden{display:none!important}
+h2{margin-top:0}
+button{border:0;border-radius:12px;padding:13px 17px;font-size:16px;font-weight:700;cursor:pointer}
+.primary{background:#d71920;color:#fff}.secondary{background:#222;color:#fff}.green{background:#16803c;color:#fff}.yellow{background:#ffd21c;color:#111}
+input{width:100%;padding:13px;border:2px solid #ddd;border-radius:10px;font-size:16px;margin:7px 0 12px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.stat{background:#f4f4f4;border-radius:12px;padding:10px;text-align:center}.stat b{display:block;font-size:20px}
+.products{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.product{border:2px solid #e4e4e4;border-radius:14px;padding:12px;position:relative}
+.product.selected{border-color:#d71920;background:#fff4f4}
+.product .emoji{font-size:34px}.product h3{margin:4px 0;font-size:17px}
+.price{font-size:18px;font-weight:800}.promo{display:inline-block;background:#ffd21c;padding:4px 7px;border-radius:7px;font-size:12px;font-weight:800;margin-top:5px}
+.product button{width:100%;margin-top:9px;padding:10px;font-size:14px}
+.badge{display:inline-block;background:#eee;border-radius:99px;padding:5px 9px;font-size:12px;font-weight:bold}
+.notice{background:#fff7d6;border-left:5px solid #f0b400;padding:12px;border-radius:10px;margin:10px 0}
+.timer{font-size:30px;font-weight:900;text-align:center;color:#d71920}
+.choice{display:block;width:100%;margin:9px 0;background:#f5f5f5;text-align:left;border:2px solid #ddd}
+.choice.correct{background:#dff5e6;border-color:#16803c}.choice.wrong{background:#ffe1e1;border-color:#d71920}
+.center{text-align:center}
+.bigscore{font-size:54px;font-weight:900;color:#d71920}
+.small{font-size:13px;color:#666}
+@media(min-width:700px){.products{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛒 COTO CHALLENGE</h1>
+  <p>La Compra Misteriosa · Juego de marketing</p>
+</header>
+
+<div class="wrap">
+
+<section id="start" class="card">
+  <h2>🎮 Bienvenidos</h2>
+  <p>Tu equipo tiene <b>$10.000</b> para hacer una compra inteligente. Elegí productos, aprovechá promociones y superá los desafíos de marketing.</p>
+  <label><b>Nombre del equipo</b></label>
+  <input id="teamName" placeholder="Ej.: Los Supercompradores">
+  <button class="primary" onclick="startGame()">EMPEZAR</button>
+  <div class="notice"><b>Regla:</b> hay que respetar el presupuesto. El objetivo no es gastar más: es tomar las mejores decisiones.</div>
+</section>
+
+<section id="shop" class="hidden">
+  <div class="card">
+    <h2>🛍️ Tu compra</h2>
+    <div class="stats">
+      <div class="stat">Presupuesto<b id="budget">$10.000</b></div>
+      <div class="stat">Gastado<b id="spent">$0</b></div>
+      <div class="stat">Ahorro<b id="saved">$0</b></div>
+    </div>
+    <div class="notice"><b>Objetivo:</b> conseguí la mayor cantidad de productos aprovechando las promociones. Hay productos sin descuento a propósito.</div>
+  </div>
+
+  <div class="card">
+    <h2>🛒 Góndola</h2>
+    <div id="products" class="products"></div>
+  </div>
+
+  <div class="card">
+    <h2>🎁 Promoción sorpresa</h2>
+    <p id="eventText">Cuando estés listo, activá una promoción especial.</p>
+    <button class="yellow" onclick="triggerEvent()" id="eventBtn">ACTIVAR PROMOCIÓN</button>
+  </div>
+
+  <div class="card">
+    <h2>📊 Tu carrito</h2>
+    <div id="cartText">Todavía no agregaste productos.</div>
+    <button class="green" onclick="goToQuiz()">TERMINAR COMPRA →</button>
+  </div>
+</section>
+
+<section id="quiz" class="hidden">
+  <div class="card">
+    <h2>🧠 Desafío de Marketing</h2>
+    <p>Respondé estas preguntas. Cada respuesta correcta suma puntos.</p>
+    <div id="quizArea"></div>
+  </div>
+</section>
+
+<section id="result" class="hidden">
+  <div class="card center">
+    <h2>🏆 COMPRA FINALIZADA</h2>
+    <p id="resultTeam"></p>
+    <div class="bigscore" id="finalScore">0</div>
+    <p>puntos</p>
+    <div id="resultDetails"></div>
+    <button class="primary" onclick="location.reload()">NUEVO EQUIPO</button>
+  </div>
+</section>
+
+</div>
+
+<script>
+const products=[
+ {id:1,name:"Galletitas",emoji:"🍪",price:2000,promo:"2×1",deal:"2x1"},
+ {id:2,name:"Fideos",emoji:"🍝",price:1500,promo:"20% OFF",deal:"20"},
+ {id:3,name:"Jugo",emoji:"🧃",price:1800,promo:"2ª unidad -50%",deal:"half"},
+ {id:4,name:"Leche",emoji:"🥛",price:1600,promo:"Sin promo",deal:"none"},
+ {id:5,name:"Detergente",emoji:"🧼",price:2200,promo:"15% OFF",deal:"15"},
+ {id:6,name:"Alfajor",emoji:"🍫",price:1200,promo:"2ª unidad -30%",deal:"30"},
+ {id:7,name:"Yerba",emoji:"🧉",price:2500,promo:"Sin promo",deal:"none"},
+ {id:8,name:"Arroz",emoji:"🍚",price:1400,promo:"10% OFF",deal:"10"},
+ {id:9,name:"Shampoo",emoji:"🧴",price:2800,promo:"Sin promo",deal:"none"},
+ {id:10,name:"Papel higiénico",emoji:"🧻",price:3000,promo:"20% OFF",deal:"20"},
+ {id:11,name:"Tomate en lata",emoji:"🥫",price:1300,promo:"2×1",deal:"2x1"},
+ {id:12,name:"Cereal",emoji:"🥣",price:2300,promo:"25% OFF",deal:"25"}
+];
+const questions=[
+ {q:"¿Cuál es un ejemplo de promoción?",a:["Un 2×1","El nombre de la empresa","El tamaño del local","El color del uniforme"],c:0},
+ {q:"Si Coto publica ofertas en Instagram para atraer jóvenes, ¿qué herramienta utiliza principalmente?",a:["Redes sociales","Logística","Contabilidad","Producción"],c:0},
+ {q:"¿Qué elemento del marketing representa el precio?",a:["Producto","Precio","Plaza","Promoción"],c:1},
+ {q:"¿Por qué una oferta llamativa puede influir en una compra?",a:["Porque puede llamar la atención y aumentar el interés","Porque elimina todos los costos","Porque obliga legalmente a comprar","Porque cambia el producto"],c:0},
+ {q:"¿Qué es el público objetivo?",a:["El grupo de consumidores al que se busca llegar","Los empleados del supermercado","Los proveedores","La competencia"],c:0}
+];
+
+let team="",budget=10000,spent=0,saved=0,cart={},eventUsed=false,quizScore=0;
+
+function money(n){return "$"+Math.round(n).toLocaleString("es-AR")}
+function startGame(){
+ team=document.getElementById("teamName").value.trim()||"Equipo sin nombre";
+ document.getElementById("start").classList.add("hidden");
+ document.getElementById("shop").classList.remove("hidden");
+ renderProducts(); update();
+}
+function renderProducts(){
+ const box=document.getElementById("products"); box.innerHTML="";
+ products.forEach(p=>{
+   const div=document.createElement("div"); div.className="product";
+   div.id="p"+p.id;
+   div.innerHTML=`<div class="emoji">${p.emoji}</div><h3>${p.name}</h3>
+   <div class="price">${money(p.price)}</div>
+   <span class="promo">${p.promo}</span>
+   <button class="secondary" onclick="add(${p.id})">AGREGAR</button>`;
+   box.appendChild(div);
+ });
+}
+function unitCost(p,qty){
+ let total=p.price*qty, saving=0;
+ if(p.deal==="2x1"){saving=Math.floor(qty/2)*p.price; total-=saving}
+ if(p.deal==="20"||p.deal==="15"||p.deal==="30"||p.deal==="10"||p.deal==="25"){
+   const pct=parseInt(p.deal); saving=total*pct/100; total-=saving;
+ }
+ if(p.deal==="half" && qty>=2){saving=p.price*0.5*Math.floor(qty/2); total-=saving}
+ return {total,saving};
+}
+function add(id){
+ const p=products.find(x=>x.id===id);
+ const next=(cart[id]||0)+1;
+ const old=cart[id]||0;
+ const oldCalc=unitCost(p,old).total;
+ const newCalc=unitCost(p,next).total;
+ const delta=newCalc-oldCalc;
+ if(spent+delta>budget){alert("⚠️ No podés superar los $10.000. Probá otra combinación.");return}
+ cart[id]=next; spent+=delta; update();
+}
+function remove(id){
+ if(!cart[id])return;
+ const p=products.find(x=>x.id===id), old=cart[id], now=old-1;
+ const delta=unitCost(p,old).total-unitCost(p,now).total;
+ spent-=delta; if(now)cart[id]=now; else delete cart[id];
+ update();
+}
+function update(){
+ let raw=0, save=0;
+ Object.entries(cart).forEach(([id,q])=>{let r=unitCost(products.find(p=>p.id==id),q);raw+=products.find(p=>p.id==id).price*q;save+=r.saving});
+ saved=save;
+ document.getElementById("spent").textContent=money(spent);
+ document.getElementById("budget").textContent=money(budget-spent);
+ document.getElementById("saved").textContent=money(saved);
+ let txt="";
+ Object.entries(cart).forEach(([id,q])=>{
+   const p=products.find(x=>x.id==id);
+   txt+=`<div style="padding:7px 0;border-bottom:1px solid #eee">${p.emoji} <b>${p.name}</b> ×${q} — ${money(unitCost(p,q).total)} <button onclick="remove(${id})" style="padding:4px 8px;font-size:12px">−</button></div>`;
+ });
+ document.getElementById("cartText").innerHTML=txt||"Todavía no agregaste productos.";
+}
+function triggerEvent(){
+ if(eventUsed)return;
+ eventUsed=true;
+ const events=[
+  "🚨 FLASH: ¡Las Galletitas pasan a tener 2×1 durante los próximos 20 segundos! Revisá tu compra.",
+  "📱 REDES: Coto publica una oferta exclusiva online: el Cereal tiene 25% OFF. ¡Podés aprovecharla!",
+  "🔥 PROMO: La segunda unidad de Alfajor tiene 30% de descuento. ¡Pensá si te conviene comprar dos!"
+ ];
+ const e=events[Math.floor(Math.random()*events.length)];
+ document.getElementById("eventText").textContent=e;
+ document.getElementById("eventBtn").textContent="PROMOCIÓN ACTIVADA ✓";
+ document.getElementById("eventBtn").disabled=true;
+}
+function goToQuiz(){
+ if(Object.keys(cart).length===0){alert("Agregá al menos un producto antes de terminar.");return}
+ document.getElementById("shop").classList.add("hidden");
+ document.getElementById("quiz").classList.remove("hidden");
+ renderQuiz();
+}
+function renderQuiz(){
+ const area=document.getElementById("quizArea"); area.innerHTML="";
+ questions.forEach((q,i)=>{
+   const card=document.createElement("div"); card.className="card";
+   card.innerHTML=`<h3>${i+1}. ${q.q}</h3>`;
+   q.a.forEach((ans,j)=>{
+     const b=document.createElement("button"); b.className="choice"; b.textContent=ans;
+     b.onclick=()=>answer(i,j,b,card); card.appendChild(b);
+   });
+   area.appendChild(card);
+ });
+ const finish=document.createElement("button"); finish.className="primary"; finish.textContent="VER RESULTADO"; finish.onclick=finishGame; area.appendChild(finish);
+}
+let answered={};
+function answer(i,j,b,card){
+ if(answered[i])return;
+ answered[i]=true;
+ const q=questions[i];
+ [...card.querySelectorAll(".choice")].forEach((x,k)=>{if(k===q.c)x.classList.add("correct")});
+ if(j===q.c){quizScore+=100;b.classList.add("correct")}else{b.classList.add("wrong")}
+}
+function finishGame(){
+ const productsBought=Object.values(cart).reduce((a,b)=>a+b,0);
+ let score=productsBought*50 + Math.round(saved/100) + quizScore;
+ if(productsBought>=5)score+=100;
+ if(saved>=1500)score+=100;
+ document.getElementById("quiz").classList.add("hidden");
+ document.getElementById("result").classList.remove("hidden");
+ document.getElementById("resultTeam").textContent=team;
+ document.getElementById("finalScore").textContent=score;
+ document.getElementById("resultDetails").innerHTML=
+ `<p>🛍️ Productos: <b>${productsBought}</b></p>
+  <p>💰 Gastado: <b>${money(spent)}</b></p>
+  <p>🏷️ Ahorraste: <b>${money(saved)}</b></p>
+  <p>🧠 Marketing: <b>${quizScore} puntos</b></p>
+  <div class="notice"><b>¿Qué demostraste?</b><br>Que el precio, las promociones, la publicidad y la presentación pueden influir en las decisiones de compra.</div>`;
+}
+</script>
+</body>
+</html>
